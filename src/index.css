@@ -2,95 +2,91 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Sports Scoreboard Design System - Dark stadium theme */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
+    /* Core dark theme - stadium aesthetic */
+    --background: 222 47% 6%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 47% 10%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Primary - Electric Blue */
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 6%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    /* Secondary - Dark surface */
+    --secondary: 222 47% 12%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 222 47% 15%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    /* Accent - Vibrant Orange */
+    --accent: 25 95% 53%;
+    --accent-foreground: 222 47% 6%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 222 47% 18%;
+    --input: 222 47% 15%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
+
+    /* Sport-specific colors */
+    --sport-volleyball: 45 93% 47%;
+    --sport-basketball: 25 95% 53%;
+    --sport-football: 142 71% 45%;
+    --sport-badminton: 280 87% 60%;
+    --sport-cricket: 142 71% 45%;
+
+    /* Score display colors */
+    --score-glow: 217 91% 60%;
+    --score-bg: 222 47% 4%;
+    --timer-active: 142 71% 45%;
+    --timer-stopped: 0 84% 60%;
+
+    /* Team colors */
+    --team-home: 217 91% 60%;
+    --team-away: 0 84% 60%;
+
+    /* Status colors */
+    --status-live: 0 84% 60%;
+    --status-upcoming: 45 93% 47%;
+    --status-finished: 215 20% 45%;
+    --status-break: 280 87% 60%;
+
+    /* Gradients */
+    --gradient-stadium: linear-gradient(180deg, hsl(222 47% 8%) 0%, hsl(222 47% 4%) 100%);
+    --gradient-score-card: linear-gradient(135deg, hsl(222 47% 10%) 0%, hsl(222 47% 6%) 100%);
+    --gradient-glow: radial-gradient(circle at center, hsl(217 91% 60% / 0.3) 0%, transparent 70%);
+    
+    /* Shadows */
+    --shadow-score: 0 0 60px hsl(217 91% 60% / 0.4);
+    --shadow-card: 0 8px 32px hsl(222 47% 4% / 0.8);
+    --shadow-glow: 0 0 40px hsl(217 91% 60% / 0.3);
+
+    /* Typography */
+    --font-display: 'Orbitron', sans-serif;
+    --font-body: 'Inter', sans-serif;
+
+    /* Sidebar (for admin) */
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 222 47% 6%;
+    --sidebar-accent: 222 47% 12%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 47% 18%;
+    --sidebar-ring: 217 91% 60%;
   }
 }
 
@@ -101,5 +97,120 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body);
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer components {
+  /* Score display styles */
+  .score-display {
+    font-family: var(--font-display);
+    @apply font-black tracking-wider;
+    text-shadow: 0 0 30px hsl(var(--score-glow) / 0.6);
+  }
+
+  .score-card {
+    background: var(--gradient-score-card);
+    box-shadow: var(--shadow-card);
+    @apply border border-border/50 backdrop-blur-sm;
+  }
+
+  .glow-effect {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Timer styles */
+  .timer-display {
+    font-family: var(--font-display);
+    @apply font-bold tracking-widest;
+  }
+
+  .timer-running {
+    color: hsl(var(--timer-active));
+    text-shadow: 0 0 20px hsl(var(--timer-active) / 0.6);
+  }
+
+  .timer-stopped {
+    color: hsl(var(--timer-stopped));
+    text-shadow: 0 0 20px hsl(var(--timer-stopped) / 0.6);
+  }
+
+  /* Status badges */
+  .status-live {
+    @apply bg-destructive text-destructive-foreground animate-pulse;
+  }
+
+  .status-upcoming {
+    background: hsl(var(--status-upcoming));
+    @apply text-background;
+  }
+
+  .status-break {
+    background: hsl(var(--status-break));
+    @apply text-white;
+  }
+
+  /* Sport badges */
+  .sport-volleyball { background: hsl(var(--sport-volleyball)); @apply text-background; }
+  .sport-basketball { background: hsl(var(--sport-basketball)); @apply text-background; }
+  .sport-football { background: hsl(var(--sport-football)); @apply text-background; }
+  .sport-badminton { background: hsl(var(--sport-badminton)); @apply text-white; }
+  .sport-cricket { background: hsl(var(--sport-cricket)); @apply text-background; }
+
+  /* Stadium background */
+  .stadium-bg {
+    background: var(--gradient-stadium);
+    @apply min-h-screen;
+  }
+
+  /* Score button styles */
+  .score-btn {
+    @apply h-16 w-16 text-2xl font-bold rounded-xl transition-all duration-200;
+    @apply hover:scale-105 active:scale-95;
+  }
+
+  .score-btn-add {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+    box-shadow: 0 4px 20px hsl(var(--primary) / 0.4);
+  }
+
+  .score-btn-subtract {
+    @apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
+    box-shadow: 0 4px 20px hsl(var(--destructive) / 0.4);
+  }
+
+  /* Player card */
+  .player-card {
+    @apply bg-secondary/50 border border-border/30 rounded-lg p-4;
+    @apply transition-all duration-300 hover:bg-secondary/70;
+  }
+
+  /* Break screen overlay */
+  .break-overlay {
+    background: linear-gradient(135deg, hsl(var(--status-break) / 0.9) 0%, hsl(222 47% 8% / 0.95) 100%);
+    @apply fixed inset-0 z-50 flex items-center justify-center;
+  }
+}
+
+/* Animations */
+@keyframes score-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.animate-score-pulse {
+  animation: score-pulse 0.5s ease-in-out;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
 }

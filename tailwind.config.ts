@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        display: ['Orbitron', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -57,6 +61,27 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        sport: {
+          volleyball: "hsl(var(--sport-volleyball))",
+          basketball: "hsl(var(--sport-basketball))",
+          football: "hsl(var(--sport-football))",
+          badminton: "hsl(var(--sport-badminton))",
+          cricket: "hsl(var(--sport-cricket))",
+        },
+        status: {
+          live: "hsl(var(--status-live))",
+          upcoming: "hsl(var(--status-upcoming))",
+          finished: "hsl(var(--status-finished))",
+          break: "hsl(var(--status-break))",
+        },
+        timer: {
+          active: "hsl(var(--timer-active))",
+          stopped: "hsl(var(--timer-stopped))",
+        },
+        team: {
+          home: "hsl(var(--team-home))",
+          away: "hsl(var(--team-away))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -65,25 +90,28 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "pulse-glow": {
+          "0%, 100%": { opacity: "0.4" },
+          "50%": { opacity: "1" },
+        },
+        "score-update": {
+          "0%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.1)" },
+          "100%": { transform: "scale(1)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "score-update": "score-update 0.3s ease-out",
       },
     },
   },
