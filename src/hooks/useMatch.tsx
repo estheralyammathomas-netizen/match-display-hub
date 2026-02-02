@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Match, Player } from '@/types/match';
+import { Match, Player, SPORT_CONFIG, canWinSet, isMatchOver, isInningsOver } from '@/types/match';
 import { useToast } from '@/hooks/use-toast';
 import { Json } from '@/integrations/supabase/types';
 
@@ -112,12 +112,59 @@ export function useMatch(matchId: string | null) {
     }
   };
 
-  // Score controls
+  // Score controls with validation
   const addScore = (team: 1 | 2, points: number = 1) => {
     if (!match) return;
-    const key = team === 1 ? 'team1_score' : 'team2_score';
-    const newScore = Math.max(0, match[key] + points);
-    updateMatch({ [key]: newScore });
+    
+    const config = SPORT_CONFIG[match.sport];
+    const scoreKey = team === 1 ? 'team1_score' : 'team2_score';
+    const currentScore = match[scoreKey];
+    const opponentScore = team === 1 ? match.team2_score : match.team1_score;
+    
+    // Validate points increment for the sport
+    if (!config.pointsPerScore.includes(points)) {
+      toast({
+        title: 'Invalid points',
+        description: `${config.name} allows ${config.pointsPerScore.join(', ')} point(s) per score`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    let newScore = currentScore + points;
+    
+    // Check for set/game completion in volleyball/badminton
+    if (config.hasSets && config.maxPointsPerSet) {
+      // For badminton, cap at 30
+      if (config.maxPointsCap && newScore > config.maxPointsCap) {
+        newScore = config.maxPointsCap;
+      }
+      
+      // Check if this score wins the set
+      if (canWinSet(match.sport, match.current_set, newScore, opponentScore)) {
+        toast({
+          title: `${team === 1 ? match.team1_name : match.team2_name} wins the set!`,
+          description: `Score: ${newScore} - ${opponentScore}`,
+        });
+      }
+    }
+    
+    // For cricket, check if innings is over
+    if (match.sport === 'cricket') {
+      const wickets = team === 1 ? match.team1_wickets : match.team2_wickets;
+      const overs = team === 1 ? match.team1_overs : match.team2_overs;
+      
+      if (isInningsOver(match.sport, wickets, overs)) {
+        toast({
+          title: 'Innings over',
+          description: 'Cannot add more runs - innings has ended',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+    
+    updateMatch({ [scoreKey]: newScore });
   };
 
   const subtractScore = (team: 1 | 2, points: number = 1) => {
@@ -127,11 +174,33 @@ export function useMatch(matchId: string | null) {
     updateMatch({ [key]: newScore });
   };
 
-  // Cricket controls
+  // Cricket controls with validation
   const addWicket = (team: 1 | 2) => {
     if (!match) return;
+    
+    const config = SPORT_CONFIG[match.sport];
     const key = team === 1 ? 'team1_wickets' : 'team2_wickets';
-    const newWickets = Math.min(10, match[key] + 1);
+    const maxWickets = config.maxWickets || 10;
+    
+    if (match[key] >= maxWickets) {
+      toast({
+        title: 'Maximum wickets reached',
+        description: `Team is all out (${maxWickets} wickets)`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    const newWickets = match[key] + 1;
+    
+    // Check if team is all out
+    if (newWickets >= maxWickets) {
+      toast({
+        title: `${team === 1 ? match.team1_name : match.team2_name} is ALL OUT!`,
+        description: `${newWickets} wickets down`,
+      });
+    }
+    
     updateMatch({ [key]: newWickets });
   };
 
@@ -144,37 +213,146 @@ export function useMatch(matchId: string | null) {
 
   const addOver = (team: 1 | 2, balls: number = 1) => {
     if (!match) return;
+    
+    const config = SPORT_CONFIG[match.sport];
     const key = team === 1 ? 'team1_overs' : 'team2_overs';
+    const wicketKey = team === 1 ? 'team1_wickets' : 'team2_wickets';
     let currentOvers = match[key];
+    const maxOvers = config.maxOvers || 20;
+    
+    // Check if team is all out
+    if (match[wicketKey] >= (config.maxWickets || 10)) {
+      toast({
+        title: 'Team is all out',
+        description: 'Cannot add more balls',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     const wholePart = Math.floor(currentOvers);
     const ballsPart = Math.round((currentOvers - wholePart) * 10);
     
     const newBalls = ballsPart + balls;
+    let newOvers: number;
+    
     if (newBalls >= 6) {
-      currentOvers = wholePart + 1;
+      newOvers = wholePart + 1;
     } else {
-      currentOvers = wholePart + newBalls / 10;
+      newOvers = wholePart + newBalls / 10;
     }
     
-    updateMatch({ [key]: currentOvers });
+    // Check max overs
+    if (newOvers > maxOvers) {
+      toast({
+        title: 'Maximum overs reached',
+        description: `Innings limited to ${maxOvers} overs`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Check if innings is complete
+    if (newOvers >= maxOvers) {
+      toast({
+        title: 'Innings complete',
+        description: `${maxOvers} overs bowled`,
+      });
+    }
+    
+    updateMatch({ [key]: newOvers });
   };
 
-  // Set controls (volleyball/badminton)
+  // Set controls (volleyball/badminton) with validation
   const addSet = (team: 1 | 2) => {
     if (!match) return;
-    const key = team === 1 ? 'team1_sets' : 'team2_sets';
+    
+    const config = SPORT_CONFIG[match.sport];
+    const setsKey = team === 1 ? 'team1_sets' : 'team2_sets';
+    const opponentSetsKey = team === 1 ? 'team2_sets' : 'team1_sets';
+    const teamScore = team === 1 ? match.team1_score : match.team2_score;
+    const opponentScore = team === 1 ? match.team2_score : match.team1_score;
+    
+    // Validate set win conditions
+    if (!canWinSet(match.sport, match.current_set, teamScore, opponentScore)) {
+      const targetPoints = match.sport === 'volleyball' && match.current_set === 5 
+        ? config.finalSetPoints 
+        : config.maxPointsPerSet;
+      
+      let message = `Need ${targetPoints} points to win`;
+      if (config.winByTwo) {
+        message += ' (win by 2)';
+      }
+      
+      toast({
+        title: 'Cannot win set yet',
+        description: message,
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    const newSets = match[setsKey] + 1;
+    const newSetNumber = match.current_set + 1;
+    
+    // Check if match is won
+    if (newSets >= (config.setsToWin || 3)) {
+      toast({
+        title: `🏆 ${team === 1 ? match.team1_name : match.team2_name} WINS THE MATCH!`,
+        description: `Final: ${newSets} - ${match[opponentSetsKey]}`,
+      });
+      
+      updateMatch({ 
+        [setsKey]: newSets,
+        team1_score: 0,
+        team2_score: 0,
+        status: 'finished',
+      });
+      return;
+    }
+    
+    // Check if max sets reached (shouldn't happen but safety check)
+    if (newSetNumber > (config.maxSets || 5)) {
+      return;
+    }
+    
     updateMatch({ 
-      [key]: match[key] + 1,
+      [setsKey]: newSets,
       team1_score: 0,
       team2_score: 0,
-      current_set: match.current_set + 1,
+      current_set: newSetNumber,
     });
   };
 
-  // Period controls
+  // Period controls with validation
   const nextPeriod = () => {
     if (!match) return;
-    updateMatch({ current_period: match.current_period + 1 });
+    
+    const config = SPORT_CONFIG[match.sport];
+    const maxPeriods = config.maxPeriods || config.periodNames.length;
+    
+    if (match.current_period >= maxPeriods) {
+      toast({
+        title: 'Maximum periods reached',
+        description: 'Cannot advance further',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    const newPeriod = match.current_period + 1;
+    
+    // Reset timer for new period if applicable
+    const updates: Partial<Match> = { 
+      current_period: newPeriod,
+    };
+    
+    if (config.hasTimer) {
+      updates.timer_seconds = config.defaultTimerSeconds;
+      updates.timer_running = false;
+    }
+    
+    updateMatch(updates);
   };
 
   // Timer controls

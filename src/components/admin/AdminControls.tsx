@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Match, SPORT_CONFIG } from '@/types/match';
+import { Match, SPORT_CONFIG, getSetPointTarget, canWinSet, isInningsOver } from '@/types/match';
 import { TimerDisplay } from '@/components/scoreboard/TimerDisplay';
 import { StatusBadge } from '@/components/scoreboard/StatusBadge';
 import { SportBadge } from '@/components/scoreboard/SportBadge';
+import { Badge } from '@/components/ui/badge';
 import { 
   Plus, 
   Minus, 
@@ -15,7 +16,7 @@ import {
   Coffee, 
   Flag,
   ChevronRight,
-  ChevronDown,
+  AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -90,22 +91,53 @@ export function AdminControls({
     setTimerInput('');
   };
 
+  // Check game state for sets-based sports
+  const getSetStatus = (team: 1 | 2) => {
+    const teamScore = team === 1 ? match.team1_score : match.team2_score;
+    const opponentScore = team === 1 ? match.team2_score : match.team1_score;
+    const targetPoints = getSetPointTarget(match.sport, match.current_set);
+    
+    if (canWinSet(match.sport, match.current_set, teamScore, opponentScore)) {
+      return 'set-point';
+    }
+    
+    if (teamScore >= targetPoints - 1 && opponentScore >= targetPoints - 1) {
+      return 'deuce';
+    }
+    
+    return null;
+  };
+
+  // Check if innings is over for cricket
+  const team1InningsOver = match.sport === 'cricket' && 
+    isInningsOver(match.sport, match.team1_wickets, match.team1_overs);
+  const team2InningsOver = match.sport === 'cricket' && 
+    isInningsOver(match.sport, match.team2_wickets, match.team2_overs);
+
   return (
     <div className="space-y-6">
       {/* Match Info */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <SportBadge sport={match.sport} />
           <StatusBadge status={match.status} />
         </div>
-        {(sportConfig.hasPeriods || sportConfig.hasSets) && (
-          <span className="font-display text-lg text-muted-foreground">
-            {sportConfig.hasSets 
-              ? sportConfig.periodNames[match.current_set - 1]
-              : sportConfig.periodNames[match.current_period - 1]
-            }
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {sportConfig.hasSets && (
+            <Badge variant="outline" className="font-display">
+              Target: {getSetPointTarget(match.sport, match.current_set)} pts
+              {sportConfig.winByTwo && ' (win by 2)'}
+            </Badge>
+          )}
+          {(sportConfig.hasPeriods || sportConfig.hasSets) && (
+            <span className="font-display text-lg text-muted-foreground">
+              {sportConfig.hasSets 
+                ? sportConfig.periodNames[match.current_set - 1]
+                : sportConfig.periodNames[match.current_period - 1]
+              }
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Timer Controls */}
@@ -171,14 +203,30 @@ export function AdminControls({
       {/* Score Controls */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Team 1 */}
-        <Card className="bg-card/50 border-border/50">
+        <Card className={cn(
+          "bg-card/50 border-border/50",
+          team1InningsOver && "opacity-60"
+        )}>
           <CardHeader className="pb-2">
-            <CardTitle 
-              className="text-xl font-display"
-              style={{ color: match.team1_color }}
-            >
-              {match.team1_name}
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle 
+                className="text-xl font-display"
+                style={{ color: match.team1_color }}
+              >
+                {match.team1_name}
+              </CardTitle>
+              {getSetStatus(1) === 'set-point' && (
+                <Badge className="bg-sport-volleyball text-white animate-pulse">
+                  SET POINT
+                </Badge>
+              )}
+              {team1InningsOver && (
+                <Badge variant="destructive" className="gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  INNINGS OVER
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Score */}
@@ -188,6 +236,7 @@ export function AdminControls({
                 <Button 
                   onClick={() => onSubtractScore(1)}
                   className="score-btn score-btn-subtract"
+                  disabled={team1InningsOver}
                 >
                   <Minus className="w-6 h-6" />
                 </Button>
@@ -200,19 +249,25 @@ export function AdminControls({
                 <Button 
                   onClick={() => onAddScore(1)}
                   className="score-btn score-btn-add"
+                  disabled={team1InningsOver}
                 >
                   <Plus className="w-6 h-6" />
                 </Button>
               </div>
-              {/* Quick add buttons for basketball */}
-              {match.sport === 'basketball' && (
+              {/* Quick add buttons based on sport */}
+              {sportConfig.pointsPerScore.length > 1 && (
                 <div className="flex justify-center gap-2 mt-3">
-                  <Button size="sm" variant="secondary" onClick={() => onAddScore(1, 2)}>
-                    +2
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => onAddScore(1, 3)}>
-                    +3
-                  </Button>
+                  {sportConfig.pointsPerScore.map((pts) => (
+                    <Button 
+                      key={pts} 
+                      size="sm" 
+                      variant="secondary" 
+                      onClick={() => onAddScore(1, pts)}
+                      disabled={team1InningsOver}
+                    >
+                      +{pts}
+                    </Button>
+                  ))}
                 </div>
               )}
             </div>
@@ -230,28 +285,38 @@ export function AdminControls({
                     >
                       <Minus className="w-4 h-4" />
                     </Button>
-                    <span className="text-2xl font-display min-w-[60px]">
-                      {match.team1_wickets}/10
+                    <span className={cn(
+                      "text-2xl font-display min-w-[60px]",
+                      match.team1_wickets >= (sportConfig.maxWickets || 10) && "text-destructive"
+                    )}>
+                      {match.team1_wickets}/{sportConfig.maxWickets || 10}
                     </span>
                     <Button 
                       onClick={() => onAddWicket(1)}
                       variant="outline"
                       size="icon"
+                      disabled={match.team1_wickets >= (sportConfig.maxWickets || 10)}
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">Overs</p>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Overs (max {sportConfig.maxOvers || 20})
+                  </p>
                   <div className="flex items-center justify-center gap-4">
-                    <span className="text-2xl font-display">
+                    <span className={cn(
+                      "text-2xl font-display",
+                      match.team1_overs >= (sportConfig.maxOvers || 20) && "text-destructive"
+                    )}>
                       {match.team1_overs.toFixed(1)}
                     </span>
                     <Button 
                       onClick={() => onAddOver(1)}
                       variant="secondary"
                       size="sm"
+                      disabled={team1InningsOver}
                     >
                       +1 Ball
                     </Button>
@@ -263,7 +328,9 @@ export function AdminControls({
             {/* Sets controls */}
             {sportConfig.hasSets && (
               <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-2">Sets Won</p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Sets Won (need {sportConfig.setsToWin} to win)
+                </p>
                 <div className="flex items-center justify-center gap-4">
                   <span className="text-2xl font-display">
                     {match.team1_sets}
@@ -273,6 +340,7 @@ export function AdminControls({
                     variant="secondary"
                     size="sm"
                     className="gap-1"
+                    disabled={!canWinSet(match.sport, match.current_set, match.team1_score, match.team2_score)}
                   >
                     <Flag className="w-4 h-4" />
                     Win Set
@@ -284,14 +352,30 @@ export function AdminControls({
         </Card>
 
         {/* Team 2 */}
-        <Card className="bg-card/50 border-border/50">
+        <Card className={cn(
+          "bg-card/50 border-border/50",
+          team2InningsOver && "opacity-60"
+        )}>
           <CardHeader className="pb-2">
-            <CardTitle 
-              className="text-xl font-display"
-              style={{ color: match.team2_color }}
-            >
-              {match.team2_name}
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle 
+                className="text-xl font-display"
+                style={{ color: match.team2_color }}
+              >
+                {match.team2_name}
+              </CardTitle>
+              {getSetStatus(2) === 'set-point' && (
+                <Badge className="bg-sport-volleyball text-white animate-pulse">
+                  SET POINT
+                </Badge>
+              )}
+              {team2InningsOver && (
+                <Badge variant="destructive" className="gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  INNINGS OVER
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Score */}
@@ -301,6 +385,7 @@ export function AdminControls({
                 <Button 
                   onClick={() => onSubtractScore(2)}
                   className="score-btn score-btn-subtract"
+                  disabled={team2InningsOver}
                 >
                   <Minus className="w-6 h-6" />
                 </Button>
@@ -313,18 +398,24 @@ export function AdminControls({
                 <Button 
                   onClick={() => onAddScore(2)}
                   className="score-btn score-btn-add"
+                  disabled={team2InningsOver}
                 >
                   <Plus className="w-6 h-6" />
                 </Button>
               </div>
-              {match.sport === 'basketball' && (
+              {sportConfig.pointsPerScore.length > 1 && (
                 <div className="flex justify-center gap-2 mt-3">
-                  <Button size="sm" variant="secondary" onClick={() => onAddScore(2, 2)}>
-                    +2
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => onAddScore(2, 3)}>
-                    +3
-                  </Button>
+                  {sportConfig.pointsPerScore.map((pts) => (
+                    <Button 
+                      key={pts} 
+                      size="sm" 
+                      variant="secondary" 
+                      onClick={() => onAddScore(2, pts)}
+                      disabled={team2InningsOver}
+                    >
+                      +{pts}
+                    </Button>
+                  ))}
                 </div>
               )}
             </div>
@@ -342,28 +433,38 @@ export function AdminControls({
                     >
                       <Minus className="w-4 h-4" />
                     </Button>
-                    <span className="text-2xl font-display min-w-[60px]">
-                      {match.team2_wickets}/10
+                    <span className={cn(
+                      "text-2xl font-display min-w-[60px]",
+                      match.team2_wickets >= (sportConfig.maxWickets || 10) && "text-destructive"
+                    )}>
+                      {match.team2_wickets}/{sportConfig.maxWickets || 10}
                     </span>
                     <Button 
                       onClick={() => onAddWicket(2)}
                       variant="outline"
                       size="icon"
+                      disabled={match.team2_wickets >= (sportConfig.maxWickets || 10)}
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">Overs</p>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Overs (max {sportConfig.maxOvers || 20})
+                  </p>
                   <div className="flex items-center justify-center gap-4">
-                    <span className="text-2xl font-display">
+                    <span className={cn(
+                      "text-2xl font-display",
+                      match.team2_overs >= (sportConfig.maxOvers || 20) && "text-destructive"
+                    )}>
                       {match.team2_overs.toFixed(1)}
                     </span>
                     <Button 
                       onClick={() => onAddOver(2)}
                       variant="secondary"
                       size="sm"
+                      disabled={team2InningsOver}
                     >
                       +1 Ball
                     </Button>
@@ -375,7 +476,9 @@ export function AdminControls({
             {/* Sets controls */}
             {sportConfig.hasSets && (
               <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-2">Sets Won</p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Sets Won (need {sportConfig.setsToWin} to win)
+                </p>
                 <div className="flex items-center justify-center gap-4">
                   <span className="text-2xl font-display">
                     {match.team2_sets}
@@ -385,6 +488,7 @@ export function AdminControls({
                     variant="secondary"
                     size="sm"
                     className="gap-1"
+                    disabled={!canWinSet(match.sport, match.current_set, match.team2_score, match.team1_score)}
                   >
                     <Flag className="w-4 h-4" />
                     Win Set
@@ -407,8 +511,14 @@ export function AdminControls({
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">
                 Current: {sportConfig.periodNames[match.current_period - 1]}
+                {sportConfig.maxPeriods && ` (${match.current_period}/${sportConfig.maxPeriods})`}
               </span>
-              <Button onClick={onNextPeriod} variant="secondary" className="gap-2">
+              <Button 
+                onClick={onNextPeriod} 
+                variant="secondary" 
+                className="gap-2"
+                disabled={match.current_period >= (sportConfig.maxPeriods || sportConfig.periodNames.length)}
+              >
                 Next Period
                 <ChevronRight className="w-4 h-4" />
               </Button>

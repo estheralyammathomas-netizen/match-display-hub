@@ -58,7 +58,7 @@ export interface Match {
   updated_at: string;
 }
 
-export const SPORT_CONFIG: Record<SportType, {
+export interface SportConfig {
   name: string;
   icon: string;
   hasTimer: boolean;
@@ -69,8 +69,21 @@ export const SPORT_CONFIG: Record<SportType, {
   periodNames: string[];
   hasWickets: boolean;
   hasOvers: boolean;
-  maxScore?: number;
-}> = {
+  // Scoring rules
+  pointsPerScore: number[];      // Valid point increments (e.g., [1] for football, [1,2,3] for basketball)
+  maxPointsPerSet?: number;      // Points needed to win a set (volleyball/badminton)
+  winByTwo?: boolean;            // Must win by 2 points (volleyball/badminton)
+  maxPointsCap?: number;         // Absolute max points (badminton caps at 30)
+  setsToWin?: number;            // Sets needed to win match
+  maxSets?: number;              // Maximum possible sets
+  finalSetPoints?: number;       // Points in final set (volleyball set 5 is to 15)
+  maxPeriods?: number;           // Maximum periods including overtime
+  maxWickets?: number;           // Cricket max wickets (10)
+  maxOvers?: number;             // Cricket max overs (20 for T20)
+  runsPerScore?: number[];       // Cricket run options [1,2,3,4,6]
+}
+
+export const SPORT_CONFIG: Record<SportType, SportConfig> = {
   volleyball: {
     name: 'Volleyball',
     icon: '🏐',
@@ -82,19 +95,28 @@ export const SPORT_CONFIG: Record<SportType, {
     periodNames: ['Set 1', 'Set 2', 'Set 3', 'Set 4', 'Set 5'],
     hasWickets: false,
     hasOvers: false,
-    maxScore: 25,
+    // Rules: Best of 5 sets, first to 25 (15 in set 5), win by 2
+    pointsPerScore: [1],
+    maxPointsPerSet: 25,
+    finalSetPoints: 15,
+    winByTwo: true,
+    setsToWin: 3,
+    maxSets: 5,
   },
   basketball: {
     name: 'Basketball',
     icon: '🏀',
     hasTimer: true,
     timerDirection: 'down',
-    defaultTimerSeconds: 600, // 10 minutes
+    defaultTimerSeconds: 600, // 10 minutes per quarter
     hasSets: false,
     hasPeriods: true,
-    periodNames: ['Q1', 'Q2', 'Q3', 'Q4', 'OT'],
+    periodNames: ['Q1', 'Q2', 'Q3', 'Q4', 'OT1', 'OT2', 'OT3'],
     hasWickets: false,
     hasOvers: false,
+    // Rules: Score 1 (free throw), 2 (inside), or 3 (three-pointer)
+    pointsPerScore: [1, 2, 3],
+    maxPeriods: 7, // 4 quarters + 3 possible overtimes
   },
   football: {
     name: 'Football',
@@ -104,9 +126,12 @@ export const SPORT_CONFIG: Record<SportType, {
     defaultTimerSeconds: 0,
     hasSets: false,
     hasPeriods: true,
-    periodNames: ['1st Half', '2nd Half', 'ET 1', 'ET 2'],
+    periodNames: ['1st Half', '2nd Half', 'ET 1', 'ET 2', 'Penalties'],
     hasWickets: false,
     hasOvers: false,
+    // Rules: 1 point per goal
+    pointsPerScore: [1],
+    maxPeriods: 5, // 2 halves + 2 extra time + penalties
   },
   badminton: {
     name: 'Badminton',
@@ -119,7 +144,13 @@ export const SPORT_CONFIG: Record<SportType, {
     periodNames: ['Game 1', 'Game 2', 'Game 3'],
     hasWickets: false,
     hasOvers: false,
-    maxScore: 21,
+    // Rules: Best of 3 games, first to 21, win by 2, capped at 30
+    pointsPerScore: [1],
+    maxPointsPerSet: 21,
+    winByTwo: true,
+    maxPointsCap: 30,
+    setsToWin: 2,
+    maxSets: 3,
   },
   cricket: {
     name: 'Cricket',
@@ -132,5 +163,74 @@ export const SPORT_CONFIG: Record<SportType, {
     periodNames: ['1st Innings', '2nd Innings'],
     hasWickets: true,
     hasOvers: true,
+    // Rules: 10 wickets, runs can be 1,2,3,4,6
+    pointsPerScore: [1, 2, 3, 4, 6],
+    runsPerScore: [1, 2, 3, 4, 6],
+    maxWickets: 10,
+    maxOvers: 20, // T20 format (can be changed)
   },
 };
+
+// Helper functions for game logic
+export function canWinSet(
+  sport: SportType,
+  currentSet: number,
+  teamScore: number,
+  opponentScore: number
+): boolean {
+  const config = SPORT_CONFIG[sport];
+  
+  if (!config.hasSets) return false;
+  
+  const targetPoints = (sport === 'volleyball' && currentSet === 5) 
+    ? config.finalSetPoints! 
+    : config.maxPointsPerSet!;
+  
+  // Must reach target points
+  if (teamScore < targetPoints) return false;
+  
+  // Must win by 2 (if applicable)
+  if (config.winByTwo && teamScore - opponentScore < 2) return false;
+  
+  // Check cap for badminton
+  if (config.maxPointsCap && teamScore >= config.maxPointsCap) {
+    return teamScore > opponentScore;
+  }
+  
+  return true;
+}
+
+export function isMatchOver(
+  sport: SportType,
+  team1Sets: number,
+  team2Sets: number
+): boolean {
+  const config = SPORT_CONFIG[sport];
+  
+  if (!config.setsToWin) return false;
+  
+  return team1Sets >= config.setsToWin || team2Sets >= config.setsToWin;
+}
+
+export function getSetPointTarget(sport: SportType, currentSet: number): number {
+  const config = SPORT_CONFIG[sport];
+  
+  if (sport === 'volleyball' && currentSet === 5) {
+    return config.finalSetPoints || 15;
+  }
+  
+  return config.maxPointsPerSet || 25;
+}
+
+export function isInningsOver(
+  sport: SportType,
+  wickets: number,
+  overs: number
+): boolean {
+  if (sport !== 'cricket') return false;
+  
+  const config = SPORT_CONFIG[sport];
+  
+  // All out or overs complete
+  return wickets >= (config.maxWickets || 10) || overs >= (config.maxOvers || 20);
+}
