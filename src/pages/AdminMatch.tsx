@@ -4,11 +4,22 @@ import { useAuth } from '@/hooks/useAuth';
 import { AdminControls } from '@/components/admin/AdminControls';
 import { QRCodeDialog } from '@/components/admin/QRCodeDialog';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminMatch() {
   const { matchId } = useParams<{ matchId: string }>();
   const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
+
+  const copyViewerLink = () => {
+    const url = `${window.location.origin}/match/${matchId}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: 'Link copied!',
+      description: 'Share this link with viewers',
+    });
+  };
   const {
     match,
     loading,
@@ -99,6 +110,10 @@ export default function AdminMatch() {
           </div>
           <div className="flex items-center gap-2">
             <QRCodeDialog matchId={matchId!} accessCode={match.access_code} />
+            <Button variant="outline" size="sm" onClick={copyViewerLink}>
+              <Copy className="w-4 h-4 mr-1" />
+              Copy Link
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to={`/match/${matchId}`} target="_blank">
                 <ExternalLink className="w-4 h-4 mr-1" />
