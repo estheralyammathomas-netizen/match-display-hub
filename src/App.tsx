@@ -11,6 +11,7 @@ import CreateMatch from "./pages/CreateMatch";
 import AdminMatch from "./pages/AdminMatch";
 import MatchView from "./pages/MatchView";
 import NotFound from "./pages/NotFound";
+import Presentation from "./pages/Presentation";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/admin/create" element={<CreateMatch />} />
             <Route path="/admin/:matchId" element={<AdminMatch />} />
             <Route path="/match/:matchId" element={<MatchView />} />
+            <Route path="/presentation" element={<Presentation />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
