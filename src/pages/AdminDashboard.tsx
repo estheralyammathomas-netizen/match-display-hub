@@ -7,9 +7,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { Match, SPORT_CONFIG } from '@/types/match';
 import { SportBadge } from '@/components/scoreboard/SportBadge';
 import { StatusBadge } from '@/components/scoreboard/StatusBadge';
-import { Plus, LogOut, ExternalLink, Settings } from 'lucide-react';
+import { Plus, LogOut, ExternalLink, Settings, Trash2 } from 'lucide-react';
 import { Json } from '@/integrations/supabase/types';
 import { Player } from '@/types/match';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 // Helper to convert JSON to Player array
 const parsePlayersJson = (json: Json | null): Player[] => {
@@ -25,6 +35,9 @@ export default function AdminDashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [matchPendingDelete, setMatchPendingDelete] = useState<Match | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -59,6 +72,29 @@ export default function AdminDashboard() {
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!matchPendingDelete) return;
+    setDeleting(true);
+    const { error } = await supabase.from('matches').delete().eq('id', matchPendingDelete.id);
+    setDeleting(false);
+
+    if (error) {
+      toast({
+        title: 'Could not delete match',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setMatches((prev) => prev.filter((m) => m.id !== matchPendingDelete.id));
+    toast({
+      title: 'Match deleted',
+      description: `${matchPendingDelete.team1_name} vs ${matchPendingDelete.team2_name} was removed.`,
+    });
+    setMatchPendingDelete(null);
   };
 
   if (authLoading || !user) {
@@ -159,7 +195,7 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Button asChild variant="outline" size="sm">
                         <Link to={`/match/${match.id}`} target="_blank">
                           <ExternalLink className="w-4 h-4 mr-1" />
@@ -172,6 +208,16 @@ export default function AdminDashboard() {
                           Control
                         </Link>
                       </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setMatchPendingDelete(match)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -180,6 +226,41 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+
+      <AlertDialog
+        open={!!matchPendingDelete}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setMatchPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this match?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {matchPendingDelete && (
+                <>
+                  This will permanently remove{' '}
+                  <span className="font-medium text-foreground">
+                    {matchPendingDelete.team1_name} vs {matchPendingDelete.team2_name}
+                  </span>
+                  . Public scoreboard links will stop working. This cannot be undone.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleting}
+              onClick={() => void handleConfirmDelete()}
+            >
+              {deleting ? 'Deleting…' : 'Delete match'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
