@@ -56,8 +56,27 @@ export function PublicScoreboard({ match }: PublicScoreboardProps) {
         {match.show_break_screen && (
           <BreakScreen
             message={match.break_message || 'BREAK'}
+            sport={match.sport}
             team1Name={match.team1_name}
             team2Name={match.team2_name}
+            team1Score={match.team1_score}
+            team2Score={match.team2_score}
+            team1Wickets={match.team1_wickets}
+            team2Wickets={match.team2_wickets}
+            team1Overs={match.team1_overs}
+            team2Overs={match.team2_overs}
+            team1Sets={match.team1_sets}
+            team2Sets={match.team2_sets}
+            currentBattingTeam={match.current_batting_team}
+            timerSeconds={timerSeconds}
+            timerRunning={match.timer_running}
+            periodLabel={
+              sportConfig.hasSets || sportConfig.hasPeriods
+                ? sportConfig.hasSets
+                  ? sportConfig.periodNames[match.current_set - 1]
+                  : sportConfig.periodNames[match.current_period - 1]
+                : undefined
+            }
             team1Players={match.team1_players}
             team2Players={match.team2_players}
             team1Color={match.team1_color}

@@ -175,8 +175,14 @@ export function AdminControls({
                   Start
                 </Button>
               )}
-              <Button 
-                onClick={() => onResetTimer(sportConfig.defaultTimerSeconds)}
+              <Button
+                onClick={() => {
+                  const sec = sportConfig.defaultTimerSeconds;
+                  // Local ticks while running but DB timer_seconds is not updated each second, so after
+                  // reset the server value may be unchanged and match.timer_seconds won't trigger a sync.
+                  setTimerSeconds(sec);
+                  onResetTimer(sec);
+                }}
                 variant="outline"
                 size="lg"
                 className="gap-2"

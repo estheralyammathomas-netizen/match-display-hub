@@ -9,7 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { SportType, SPORT_CONFIG, Player } from '@/types/match';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, User } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Plus, Trash2 } from 'lucide-react';
 
 export function CreateMatchForm() {
   const navigate = useNavigate();
@@ -135,24 +136,44 @@ export function CreateMatchForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto">
       {/* Sport Selection */}
-      <Card className="bg-card/50 border-border/50">
+      <Card className="overflow-visible bg-card/50 border-border/50">
         <CardHeader>
           <CardTitle className="font-display">Select Sport</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {(Object.keys(SPORT_CONFIG) as SportType[]).map((sportType) => {
+        <CardContent className="overflow-visible">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 overflow-visible">
+            {(Object.keys(SPORT_CONFIG) as SportType[]).map((sportType, index) => {
               const config = SPORT_CONFIG[sportType];
+              const isSelected = sport === sportType;
+              const tilt =
+                index % 2 === 0 ? 'group-hover:rotate-12' : 'group-hover:-rotate-12';
               return (
                 <Button
                   key={sportType}
                   type="button"
-                  variant={sport === sportType ? 'default' : 'outline'}
-                  className={`h-20 flex-col gap-2 ${sport === sportType ? `sport-${sportType}` : ''}`}
+                  variant={isSelected ? 'default' : 'outline'}
+                  className={cn(
+                    'group relative h-20 flex-col gap-1 overflow-visible transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:-translate-y-2 hover:border-primary/45 hover:shadow-[0_20px_50px_-12px_hsl(217_91%_60%_/_0.25)]',
+                    isSelected && `sport-${sportType}`,
+                    !isSelected &&
+                      'border-border/50 bg-card/50 hover:bg-card/85',
+                  )}
                   onClick={() => setSport(sportType)}
                 >
-                  <span className="text-2xl">{config.icon}</span>
-                  <span className="text-sm">{config.name}</span>
+                  <div className="flex h-9 shrink-0 items-center justify-center overflow-visible md:h-10">
+                    <span
+                      className={cn(
+                        'inline-block origin-center text-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] will-change-transform group-hover:scale-[2.2] group-hover:drop-shadow-[0_0_28px_hsl(217_91%_60%_/_0.55)] md:text-3xl',
+                        tilt,
+                      )}
+                      aria-hidden
+                    >
+                      {config.icon}
+                    </span>
+                  </div>
+                  <span className="text-sm transition-colors duration-300 group-hover:text-primary">
+                    {config.name}
+                  </span>
                 </Button>
               );
             })}
