@@ -148,12 +148,6 @@ export function BreakScreen({
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <h2 
-              className="text-3xl font-display font-bold mb-6 text-center"
-              style={{ color: team1Color }}
-            >
-              {team1Name}
-            </h2>
             <div className="grid gap-3">
               {team1Players.map((player, index) => (
                 <motion.div
@@ -195,12 +189,6 @@ export function BreakScreen({
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <h2 
-              className="text-3xl font-display font-bold mb-6 text-center"
-              style={{ color: team2Color }}
-            >
-              {team2Name}
-            </h2>
             <div className="grid gap-3">
               {team2Players.map((player, index) => (
                 <motion.div
